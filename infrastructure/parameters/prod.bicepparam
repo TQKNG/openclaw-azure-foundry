@@ -4,12 +4,17 @@ param location = 'eastus2'
 param resourceGroupName = 'rg-openclaw'
 param vnetName = 'vnet-openclaw'
 param vmName = 'vm-openclaw'
-param vmSize = 'Standard_B2as_v2'
+param vmSize = 'Standard_D2s_v3'
 param osDiskSizeGb = 64
 param adminUsername = 'openclaw'
-param aiFoundryAccountName = 'oc-foundry-eus2'
-param modelName = 'gpt-5.4-mini'
-param modelVersion = '2026-03-17'
-param modelCapacity = 30
-param keyVaultName = 'kv-oc-eus2'
-// sshPublicKey and telegramBotToken passed at deploy time via CLI or GitHub Actions
+param aiServicesName = 'oc-ai-services-demo'
+param hubName = 'oc-foundry-hub-demo'
+param projectName = 'oc-foundry-proj-demo'
+param storageAccountName = 'stocfoundrydemo01'
+param modelName = 'gpt-4o'
+param modelVersion = '2024-11-20'
+param modelCapacity = 20
+param keyVaultName = 'kv-oc-demo-01'
+// sshPublicKey and telegramBotToken passed at deploy time
+param sshPublicKey = 'ssh-rsa PLACEHOLDER'
+param telegramBotToken = 'PLACEHOLDER'

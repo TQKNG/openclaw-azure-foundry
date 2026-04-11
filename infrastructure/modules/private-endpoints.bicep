@@ -1,23 +1,22 @@
 param location string
 param peSubnetId string
-param foundryAccountId string
+param aiServicesId string
+param hubId string
 param keyVaultId string
 param openaiPrivateDnsZoneId string
 param kvPrivateDnsZoneId string
 
-// Private Endpoint for Azure AI Foundry (Cognitive Services)
-resource foundryPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
-  name: 'pe-foundry-openclaw'
+// Private Endpoint for AI Services (account sub-resource)
+resource aiServicesPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+  name: 'pe-aiservices-openclaw'
   location: location
   properties: {
-    subnet: {
-      id: peSubnetId
-    }
+    subnet: { id: peSubnetId }
     privateLinkServiceConnections: [
       {
-        name: 'plsc-foundry'
+        name: 'plsc-aiservices'
         properties: {
-          privateLinkServiceId: foundryAccountId
+          privateLinkServiceId: aiServicesId
           groupIds: ['account']
         }
       }
@@ -25,15 +24,31 @@ resource foundryPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' 
   }
 }
 
-resource foundryDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-09-01' = {
-  parent: foundryPrivateEndpoint
-  name: 'foundry-dns-zone-group'
+resource aiServicesDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2023-09-01' = {
+  parent: aiServicesPrivateEndpoint
+  name: 'aiservices-dns-zone-group'
   properties: {
     privateDnsZoneConfigs: [
       {
         name: 'privatelink-openai-azure-com'
+        properties: { privateDnsZoneId: openaiPrivateDnsZoneId }
+      }
+    ]
+  }
+}
+
+// Private Endpoint for AI Foundry Hub (amlworkspace sub-resource)
+resource hubPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
+  name: 'pe-hub-openclaw'
+  location: location
+  properties: {
+    subnet: { id: peSubnetId }
+    privateLinkServiceConnections: [
+      {
+        name: 'plsc-hub'
         properties: {
-          privateDnsZoneId: openaiPrivateDnsZoneId
+          privateLinkServiceId: hubId
+          groupIds: ['amlworkspace']
         }
       }
     ]
@@ -45,9 +60,7 @@ resource kvPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
   name: 'pe-kv-openclaw'
   location: location
   properties: {
-    subnet: {
-      id: peSubnetId
-    }
+    subnet: { id: peSubnetId }
     privateLinkServiceConnections: [
       {
         name: 'plsc-kv'
@@ -67,13 +80,12 @@ resource kvDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups
     privateDnsZoneConfigs: [
       {
         name: 'privatelink-vaultcore-azure-net'
-        properties: {
-          privateDnsZoneId: kvPrivateDnsZoneId
-        }
+        properties: { privateDnsZoneId: kvPrivateDnsZoneId }
       }
     ]
   }
 }
 
-output foundryPrivateEndpointId string = foundryPrivateEndpoint.id
+output aiServicesPrivateEndpointId string = aiServicesPrivateEndpoint.id
+output hubPrivateEndpointId string = hubPrivateEndpoint.id
 output kvPrivateEndpointId string = kvPrivateEndpoint.id

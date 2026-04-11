@@ -1,0 +1,1072 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "languageVersion": "2.0",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "16866663627238197800"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus2",
+      "metadata": {
+        "description": "Azure region for all resources"
+      }
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "defaultValue": "rg-openclaw",
+      "metadata": {
+        "description": "Resource group name"
+      }
+    },
+    "vnetName": {
+      "type": "string",
+      "defaultValue": "vnet-openclaw",
+      "metadata": {
+        "description": "Virtual network name"
+      }
+    },
+    "vmName": {
+      "type": "string",
+      "defaultValue": "vm-openclaw",
+      "metadata": {
+        "description": "Virtual machine name"
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D2s_v3",
+      "metadata": {
+        "description": "VM size"
+      }
+    },
+    "osDiskSizeGb": {
+      "type": "int",
+      "defaultValue": 64,
+      "metadata": {
+        "description": "OS disk size in GB"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "openclaw",
+      "metadata": {
+        "description": "Admin username for the VM"
+      }
+    },
+    "sshPublicKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "SSH public key for VM access"
+      }
+    },
+    "aiServicesName": {
+      "type": "string",
+      "defaultValue": "oc-ai-services-demo",
+      "metadata": {
+        "description": "AI Services account name (backs Foundry Hub)"
+      }
+    },
+    "hubName": {
+      "type": "string",
+      "defaultValue": "oc-foundry-hub-demo",
+      "metadata": {
+        "description": "AI Foundry Hub name"
+      }
+    },
+    "projectName": {
+      "type": "string",
+      "defaultValue": "oc-foundry-project-demo",
+      "metadata": {
+        "description": "AI Foundry Project name"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "stocfoundrydemo01",
+      "metadata": {
+        "description": "Storage account name for Foundry Hub (3-24 chars, lowercase alphanumeric)"
+      }
+    },
+    "modelName": {
+      "type": "string",
+      "defaultValue": "gpt-4o",
+      "metadata": {
+        "description": "Model name to deploy"
+      }
+    },
+    "modelVersion": {
+      "type": "string",
+      "defaultValue": "2024-11-20",
+      "metadata": {
+        "description": "Model version"
+      }
+    },
+    "modelCapacity": {
+      "type": "int",
+      "defaultValue": 30,
+      "metadata": {
+        "description": "Model capacity (TPM in thousands)"
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "kv-oc-demo-01",
+      "metadata": {
+        "description": "Key Vault name"
+      }
+    },
+    "telegramBotToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Telegram bot token"
+      }
+    }
+  },
+  "resources": {
+    "rg": {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2023-07-01",
+      "name": "[parameters('resourceGroupName')]",
+      "location": "[parameters('location')]"
+    },
+    "networking": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "networking",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "vnetName": {
+            "value": "[parameters('vnetName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "5861239694347516915"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "vnetName": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2023-09-01",
+              "name": "nsg-vm-openclaw",
+              "location": "[parameters('location')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "DenyAllInboundFromInternet",
+                    "properties": {
+                      "priority": 100,
+                      "protocol": "*",
+                      "access": "Deny",
+                      "direction": "Inbound",
+                      "sourceAddressPrefix": "Internet",
+                      "sourcePortRange": "*",
+                      "destinationAddressPrefix": "*",
+                      "destinationPortRange": "*"
+                    }
+                  },
+                  {
+                    "name": "AllowVnetInbound",
+                    "properties": {
+                      "priority": 200,
+                      "protocol": "*",
+                      "access": "Allow",
+                      "direction": "Inbound",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "sourcePortRange": "*",
+                      "destinationAddressPrefix": "VirtualNetwork",
+                      "destinationPortRange": "*"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('vnetName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "10.40.0.0/16"
+                  ]
+                },
+                "subnets": [
+                  {
+                    "name": "snet-vm",
+                    "properties": {
+                      "addressPrefix": "10.40.2.0/24",
+                      "networkSecurityGroup": {
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-vm-openclaw')]"
+                      },
+                      "privateEndpointNetworkPolicies": "Enabled"
+                    }
+                  },
+                  {
+                    "name": "snet-pe",
+                    "properties": {
+                      "addressPrefix": "10.40.3.0/24",
+                      "privateEndpointNetworkPolicies": "Disabled"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-vm-openclaw')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "privatelink.openai.azure.com",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "privatelink.vaultcore.azure.net",
+              "location": "global"
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.openai.azure.com', format('link-openai-{0}', parameters('vnetName')))]",
+              "location": "global",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.openai.azure.com')]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.vaultcore.azure.net', format('link-kv-{0}', parameters('vnetName')))]",
+              "location": "global",
+              "properties": {
+                "virtualNetwork": {
+                  "id": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+                },
+                "registrationEnabled": false
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "vnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName'))]"
+            },
+            "vmSubnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2023-09-01').subnets[0].id]"
+            },
+            "peSubnetId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/virtualNetworks', parameters('vnetName')), '2023-09-01').subnets[1].id]"
+            },
+            "openaiPrivateDnsZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.openai.azure.com')]"
+            },
+            "kvPrivateDnsZoneId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.vaultcore.azure.net')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "rg"
+      ]
+    },
+    "aiFoundry": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "ai-foundry",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "aiServicesName": {
+            "value": "[parameters('aiServicesName')]"
+          },
+          "hubName": {
+            "value": "[parameters('hubName')]"
+          },
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "storageAccountName": {
+            "value": "[parameters('storageAccountName')]"
+          },
+          "modelName": {
+            "value": "[parameters('modelName')]"
+          },
+          "modelVersion": {
+            "value": "[parameters('modelVersion')]"
+          },
+          "modelCapacity": {
+            "value": "[parameters('modelCapacity')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "languageVersion": "2.0",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "1415885754165632626"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "aiServicesName": {
+              "type": "string"
+            },
+            "hubName": {
+              "type": "string"
+            },
+            "projectName": {
+              "type": "string"
+            },
+            "storageAccountName": {
+              "type": "string"
+            },
+            "modelName": {
+              "type": "string",
+              "defaultValue": "gpt-4o"
+            },
+            "modelVersion": {
+              "type": "string",
+              "defaultValue": "2024-11-20"
+            },
+            "modelCapacity": {
+              "type": "int",
+              "defaultValue": 30
+            }
+          },
+          "resources": {
+            "storageAccount": {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-05-01",
+              "name": "[parameters('storageAccountName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "kind": "StorageV2",
+              "properties": {
+                "allowBlobPublicAccess": false,
+                "minimumTlsVersion": "TLS1_2",
+                "supportsHttpsTrafficOnly": true
+              }
+            },
+            "aiServices": {
+              "type": "Microsoft.CognitiveServices/accounts",
+              "apiVersion": "2024-10-01",
+              "name": "[parameters('aiServicesName')]",
+              "location": "[parameters('location')]",
+              "kind": "AIServices",
+              "sku": {
+                "name": "S0"
+              },
+              "properties": {
+                "publicNetworkAccess": "Disabled",
+                "networkAcls": {
+                  "defaultAction": "Deny"
+                },
+                "customSubDomainName": "[parameters('aiServicesName')]"
+              }
+            },
+            "modelDeployment": {
+              "condition": "[not(empty(parameters('modelName')))]",
+              "type": "Microsoft.CognitiveServices/accounts/deployments",
+              "apiVersion": "2024-10-01",
+              "name": "[format('{0}/{1}', parameters('aiServicesName'), if(not(empty(parameters('modelName'))), parameters('modelName'), 'placeholder'))]",
+              "sku": {
+                "name": "Standard",
+                "capacity": "[parameters('modelCapacity')]"
+              },
+              "properties": {
+                "model": {
+                  "format": "OpenAI",
+                  "name": "[parameters('modelName')]",
+                  "version": "[parameters('modelVersion')]"
+                }
+              },
+              "dependsOn": [
+                "aiServices"
+              ]
+            },
+            "hub": {
+              "type": "Microsoft.MachineLearningServices/workspaces",
+              "apiVersion": "2024-07-01-preview",
+              "name": "[parameters('hubName')]",
+              "location": "[parameters('location')]",
+              "kind": "Hub",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "storageAccount": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                "publicNetworkAccess": "Disabled",
+                "friendlyName": "[parameters('hubName')]"
+              },
+              "dependsOn": [
+                "storageAccount"
+              ]
+            },
+            "aiServicesConnection": {
+              "type": "Microsoft.MachineLearningServices/workspaces/connections",
+              "apiVersion": "2024-07-01-preview",
+              "name": "[format('{0}/{1}', parameters('hubName'), 'ai-services-connection')]",
+              "properties": {
+                "category": "AIServices",
+                "target": "[reference('aiServices').endpoint]",
+                "authType": "ApiKey",
+                "isSharedToAll": true,
+                "credentials": {
+                  "key": "[listKeys('aiServices', '2024-10-01').key1]"
+                },
+                "metadata": {
+                  "ApiType": "Azure",
+                  "ResourceId": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName'))]"
+                }
+              },
+              "dependsOn": [
+                "aiServices",
+                "hub"
+              ]
+            },
+            "project": {
+              "type": "Microsoft.MachineLearningServices/workspaces",
+              "apiVersion": "2024-07-01-preview",
+              "name": "[parameters('projectName')]",
+              "location": "[parameters('location')]",
+              "kind": "Project",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "hubResourceId": "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('hubName'))]",
+                "publicNetworkAccess": "Disabled",
+                "friendlyName": "[parameters('projectName')]"
+              },
+              "dependsOn": [
+                "hub"
+              ]
+            }
+          },
+          "outputs": {
+            "aiServicesId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.CognitiveServices/accounts', parameters('aiServicesName'))]"
+            },
+            "hubId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('hubName'))]"
+            },
+            "projectId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('projectName'))]"
+            },
+            "storageAccountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+            },
+            "aiServicesEndpoint": {
+              "type": "string",
+              "value": "[reference('aiServices').endpoint]"
+            },
+            "foundryApiKey": {
+              "type": "securestring",
+              "value": "[listKeys('aiServices', '2024-10-01').key1]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "rg"
+      ]
+    },
+    "compute": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "compute",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "vmName": {
+            "value": "[parameters('vmName')]"
+          },
+          "vmSize": {
+            "value": "[parameters('vmSize')]"
+          },
+          "osDiskSizeGb": {
+            "value": "[parameters('osDiskSizeGb')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "sshPublicKey": {
+            "value": "[parameters('sshPublicKey')]"
+          },
+          "vmSubnetId": {
+            "value": "[reference('networking').outputs.vmSubnetId.value]"
+          },
+          "keyVaultName": {
+            "value": "[parameters('keyVaultName')]"
+          },
+          "aiFoundryAccountName": {
+            "value": "[parameters('aiServicesName')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "1972767766025527597"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "vmName": {
+              "type": "string"
+            },
+            "vmSize": {
+              "type": "string",
+              "defaultValue": "Standard_B2as_v2"
+            },
+            "osDiskSizeGb": {
+              "type": "int",
+              "defaultValue": 64
+            },
+            "adminUsername": {
+              "type": "string",
+              "defaultValue": "openclaw"
+            },
+            "sshPublicKey": {
+              "type": "securestring"
+            },
+            "vmSubnetId": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "aiFoundryAccountName": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "cloudInitRaw": "#cloud-config\npackage_update: true\npackage_upgrade: true\n\npackages:\n  - curl\n  - jq\n  - unzip\n\nruncmd:\n  # Install Node.js LTS\n  - curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -\n  - apt-get install -y nodejs\n\n  # Install Azure CLI\n  - curl -sL https://aka.ms/InstallAzureCLIDeb | bash\n\n  # Login with managed identity\n  - az login --identity --allow-no-subscriptions\n\n  # Pull secrets from Key Vault (retry loop for role assignment propagation)\n  - |\n    for i in $(seq 1 30); do\n      FOUNDRY_API_KEY=$(az keyvault secret show --vault-name \"${KEY_VAULT_NAME}\" --name foundry-api-key --query value -o tsv 2>/dev/null) && break\n      echo \"Waiting for Key Vault access (attempt $i/30)...\"\n      sleep 10\n    done\n  - TELEGRAM_BOT_TOKEN=$(az keyvault secret show --vault-name \"${KEY_VAULT_NAME}\" --name telegram-bot-token --query value -o tsv)\n  - FOUNDRY_ENDPOINT=\"https://${AI_FOUNDRY_ACCOUNT_NAME}.services.ai.azure.com/\"\n\n  # Install OpenClaw as the admin user (non-interactive)\n  - OPENCLAW_NONINTERACTIVE=1 sudo -u ${ADMIN_USERNAME} -i bash -c 'curl -fsSL https://openclaw.ai/install.sh | bash'\n\n  # Create config directory\n  - mkdir -p /home/${ADMIN_USERNAME}/.openclaw/agents/main/agent\n  - mkdir -p /home/${ADMIN_USERNAME}/.openclaw/workspace\n\n  # Write openclaw.json\n  - |\n    cat > /home/${ADMIN_USERNAME}/.openclaw/openclaw.json << OCEOF\n    {\n      \"models\": {\n        \"mode\": \"merge\",\n        \"providers\": {\n          \"azure-openai-responses\": {\n            \"baseUrl\": \"$FOUNDRY_ENDPOINT\",\n            \"apiKey\": \"$FOUNDRY_API_KEY\",\n            \"api\": \"openai-responses\",\n            \"authHeader\": false,\n            \"headers\": {\n              \"api-key\": \"$FOUNDRY_API_KEY\"\n            },\n            \"models\": [\n              {\n                \"id\": \"gpt-4o\",\n                \"name\": \"GPT-5.4-mini (Azure Foundry)\",\n                \"reasoning\": false,\n                \"input\": [\"text\"],\n                \"cost\": { \"input\": 0, \"output\": 0, \"cacheRead\": 0, \"cacheWrite\": 0 },\n                \"contextWindow\": 128000,\n                \"maxTokens\": 16384,\n                \"compat\": { \"supportsStore\": false }\n              }\n            ]\n          }\n        }\n      },\n      \"agents\": {\n        \"defaults\": {\n          \"model\": { \"primary\": \"azure-openai-responses/gpt-4o\" },\n          \"models\": { \"azure-openai-responses/gpt-4o\": {} },\n          \"workspace\": \"/home/${ADMIN_USERNAME}/.openclaw/workspace\"\n        },\n        \"list\": [\n          {\n            \"id\": \"main\",\n            \"name\": \"main\",\n            \"workspace\": \"/home/${ADMIN_USERNAME}/.openclaw/workspace\",\n            \"agentDir\": \"/home/${ADMIN_USERNAME}/.openclaw/agents/main/agent\",\n            \"model\": \"azure-openai-responses/gpt-4o\"\n          }\n        ]\n      },\n      \"channels\": {\n        \"telegram\": {\n          \"enabled\": true,\n          \"dmPolicy\": \"pairing\",\n          \"botToken\": \"$TELEGRAM_BOT_TOKEN\",\n          \"groupPolicy\": \"allowlist\",\n          \"streaming\": \"partial\"\n        }\n      },\n      \"gateway\": { \"port\": 18789, \"mode\": \"local\", \"bind\": \"loopback\" },\n      \"browser\": { \"enabled\": false },\n      \"tools\": { \"profile\": \"coding\", \"web\": { \"search\": { \"enabled\": false } } },\n      \"commands\": { \"native\": \"auto\", \"restart\": true },\n      \"session\": { \"dmScope\": \"per-channel-peer\" }\n    }\n    OCEOF\n\n  # Write auth-profiles.json\n  - |\n    cat > /home/${ADMIN_USERNAME}/.openclaw/agents/main/agent/auth-profiles.json << APEOF\n    {\n      \"version\": 1,\n      \"profiles\": {\n        \"azure-openai-responses:default\": {\n          \"type\": \"api_key\",\n          \"provider\": \"azure-openai-responses\",\n          \"key\": \"$FOUNDRY_API_KEY\"\n        }\n      },\n      \"lastGood\": {\n        \"azure-openai-responses\": \"azure-openai-responses:default\"\n      }\n    }\n    APEOF\n\n  # Fix ownership\n  - chown -R ${ADMIN_USERNAME}:${ADMIN_USERNAME} /home/${ADMIN_USERNAME}/.openclaw\n\n  # Create systemd service\n  - |\n    cat > /etc/systemd/system/openclaw.service << 'SVCEOF'\n    [Unit]\n    Description=OpenClaw AI Assistant Gateway\n    After=network-online.target\n    Wants=network-online.target\n\n    [Service]\n    Type=simple\n    User=${ADMIN_USERNAME}\n    WorkingDirectory=/home/${ADMIN_USERNAME}\n    ExecStart=/home/${ADMIN_USERNAME}/.local/bin/openclaw gateway start --foreground\n    Restart=always\n    RestartSec=10\n    Environment=HOME=/home/${ADMIN_USERNAME}\n\n    [Install]\n    WantedBy=multi-user.target\n    SVCEOF\n\n  # Enable and start OpenClaw\n  - systemctl daemon-reload\n  - systemctl enable openclaw\n  - systemctl start openclaw\n",
+            "cloudInitConfigured": "[replace(replace(replace(variables('cloudInitRaw'), '${KEY_VAULT_NAME}', parameters('keyVaultName')), '${AI_FOUNDRY_ACCOUNT_NAME}', parameters('aiFoundryAccountName')), '${ADMIN_USERNAME}', parameters('adminUsername'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/networkInterfaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('nic-{0}', parameters('vmName'))]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "subnet": {
+                        "id": "[parameters('vmSubnetId')]"
+                      },
+                      "privateIPAllocationMethod": "Dynamic"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('vmName')]",
+              "location": "[parameters('location')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                  "computerName": "[parameters('vmName')]",
+                  "adminUsername": "[parameters('adminUsername')]",
+                  "linuxConfiguration": {
+                    "disablePasswordAuthentication": true,
+                    "ssh": {
+                      "publicKeys": [
+                        {
+                          "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                          "keyData": "[parameters('sshPublicKey')]"
+                        }
+                      ]
+                    }
+                  },
+                  "customData": "[base64(variables('cloudInitConfigured'))]"
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "Canonical",
+                    "offer": "ubuntu-24_04-lts",
+                    "sku": "server",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "createOption": "FromImage",
+                    "diskSizeGB": "[parameters('osDiskSizeGb')]",
+                    "managedDisk": {
+                      "storageAccountType": "StandardSSD_LRS"
+                    }
+                  }
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('nic-{0}', parameters('vmName')))]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', format('nic-{0}', parameters('vmName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "vmPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Compute/virtualMachines', parameters('vmName')), '2023-09-01', 'full').identity.principalId]"
+            },
+            "vmId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Compute/virtualMachines', parameters('vmName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "networking"
+      ]
+    },
+    "keyvault": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "keyvault",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "keyVaultName": {
+            "value": "[parameters('keyVaultName')]"
+          },
+          "foundryApiKey": {
+            "value": "[listOutputsWithSecureValues('aiFoundry', '2025-04-01').foundryApiKey]"
+          },
+          "telegramBotToken": {
+            "value": "[parameters('telegramBotToken')]"
+          },
+          "vmPrincipalId": {
+            "value": "[reference('compute').outputs.vmPrincipalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "8930338184955268014"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "foundryApiKey": {
+              "type": "securestring"
+            },
+            "telegramBotToken": {
+              "type": "securestring"
+            },
+            "vmPrincipalId": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "keyVaultSecretsUserRoleId": "4633458b-17de-408a-b874-0445c86b69e6"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-07-01",
+              "name": "[parameters('keyVaultName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "family": "A",
+                  "name": "standard"
+                },
+                "tenantId": "[tenant().tenantId]",
+                "enableRbacAuthorization": true,
+                "publicNetworkAccess": "disabled",
+                "networkAcls": {
+                  "defaultAction": "Deny",
+                  "bypass": "AzureServices"
+                },
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 7
+              }
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-07-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'foundry-api-key')]",
+              "properties": {
+                "value": "[parameters('foundryApiKey')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-07-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), 'telegram-bot-token')]",
+              "properties": {
+                "value": "[parameters('telegramBotToken')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+              "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('vmPrincipalId'), variables('keyVaultSecretsUserRoleId'))]",
+              "properties": {
+                "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('keyVaultSecretsUserRoleId'))]",
+                "principalId": "[parameters('vmPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "keyVaultName": {
+              "type": "string",
+              "value": "[parameters('keyVaultName')]"
+            },
+            "keyVaultId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+            },
+            "keyVaultUri": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "aiFoundry",
+        "compute"
+      ]
+    },
+    "privateEndpoints": {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "private-endpoints",
+      "resourceGroup": "[parameters('resourceGroupName')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "peSubnetId": {
+            "value": "[reference('networking').outputs.peSubnetId.value]"
+          },
+          "aiServicesId": {
+            "value": "[reference('aiFoundry').outputs.aiServicesId.value]"
+          },
+          "hubId": {
+            "value": "[reference('aiFoundry').outputs.hubId.value]"
+          },
+          "keyVaultId": {
+            "value": "[reference('keyvault').outputs.keyVaultId.value]"
+          },
+          "openaiPrivateDnsZoneId": {
+            "value": "[reference('networking').outputs.openaiPrivateDnsZoneId.value]"
+          },
+          "kvPrivateDnsZoneId": {
+            "value": "[reference('networking').outputs.kvPrivateDnsZoneId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "2559152404581909792"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "peSubnetId": {
+              "type": "string"
+            },
+            "aiServicesId": {
+              "type": "string"
+            },
+            "hubId": {
+              "type": "string"
+            },
+            "keyVaultId": {
+              "type": "string"
+            },
+            "openaiPrivateDnsZoneId": {
+              "type": "string"
+            },
+            "kvPrivateDnsZoneId": {
+              "type": "string"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-09-01",
+              "name": "pe-aiservices-openclaw",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('peSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "plsc-aiservices",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('aiServicesId')]",
+                      "groupIds": [
+                        "account"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', 'pe-aiservices-openclaw', 'aiservices-dns-zone-group')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "privatelink-openai-azure-com",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('openaiPrivateDnsZoneId')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', 'pe-aiservices-openclaw')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-09-01",
+              "name": "pe-hub-openclaw",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('peSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "plsc-hub",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('hubId')]",
+                      "groupIds": [
+                        "amlworkspace"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints",
+              "apiVersion": "2023-09-01",
+              "name": "pe-kv-openclaw",
+              "location": "[parameters('location')]",
+              "properties": {
+                "subnet": {
+                  "id": "[parameters('peSubnetId')]"
+                },
+                "privateLinkServiceConnections": [
+                  {
+                    "name": "plsc-kv",
+                    "properties": {
+                      "privateLinkServiceId": "[parameters('keyVaultId')]",
+                      "groupIds": [
+                        "vault"
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', 'pe-kv-openclaw', 'kv-dns-zone-group')]",
+              "properties": {
+                "privateDnsZoneConfigs": [
+                  {
+                    "name": "privatelink-vaultcore-azure-net",
+                    "properties": {
+                      "privateDnsZoneId": "[parameters('kvPrivateDnsZoneId')]"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateEndpoints', 'pe-kv-openclaw')]"
+              ]
+            }
+          ],
+          "outputs": {
+            "aiServicesPrivateEndpointId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateEndpoints', 'pe-aiservices-openclaw')]"
+            },
+            "hubPrivateEndpointId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateEndpoints', 'pe-hub-openclaw')]"
+            },
+            "kvPrivateEndpointId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateEndpoints', 'pe-kv-openclaw')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "aiFoundry",
+        "keyvault",
+        "networking"
+      ]
+    }
+  },
+  "outputs": {
+    "resourceGroupName": {
+      "type": "string",
+      "value": "[parameters('resourceGroupName')]"
+    },
+    "vmName": {
+      "type": "string",
+      "value": "[parameters('vmName')]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[reference('keyvault').outputs.keyVaultName.value]"
+    },
+    "aiServicesEndpoint": {
+      "type": "string",
+      "value": "[reference('aiFoundry').outputs.aiServicesEndpoint.value]"
+    },
+    "hubId": {
+      "type": "string",
+      "value": "[reference('aiFoundry').outputs.hubId.value]"
+    },
+    "projectId": {
+      "type": "string",
+      "value": "[reference('aiFoundry').outputs.projectId.value]"
+    }
+  }
+}
