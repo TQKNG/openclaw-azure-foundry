@@ -119,9 +119,13 @@ runcmd:
   # Fix ownership
   - chown -R ${ADMIN_USERNAME}:${ADMIN_USERNAME} /home/${ADMIN_USERNAME}/.openclaw
 
+  # Determine openclaw binary path (installer puts it in .npm-global/bin)
+  - OPENCLAW_BIN=$(sudo -u ${ADMIN_USERNAME} -i bash -c 'command -v openclaw 2>/dev/null || echo /home/${ADMIN_USERNAME}/.npm-global/bin/openclaw')
+
   # Create systemd service
   - |
-    cat > /etc/systemd/system/openclaw.service << 'SVCEOF'
+    OPENCLAW_BIN_PATH=$(sudo -u ${ADMIN_USERNAME} bash -c 'echo $HOME/.npm-global/bin/openclaw')
+    cat > /etc/systemd/system/openclaw.service << SVCEOF
     [Unit]
     Description=OpenClaw AI Assistant Gateway
     After=network-online.target
@@ -130,11 +134,16 @@ runcmd:
     [Service]
     Type=simple
     User=${ADMIN_USERNAME}
+    Group=${ADMIN_USERNAME}
     WorkingDirectory=/home/${ADMIN_USERNAME}
-    ExecStart=/home/${ADMIN_USERNAME}/.local/bin/openclaw gateway start --foreground
-    Restart=always
-    RestartSec=10
     Environment=HOME=/home/${ADMIN_USERNAME}
+    Environment=PATH=/home/${ADMIN_USERNAME}/.npm-global/bin:/usr/local/bin:/usr/bin:/bin
+    Environment=NODE_ENV=production
+    ExecStart=${OPENCLAW_BIN_PATH} gateway --allow-unconfigured
+    Restart=on-failure
+    RestartSec=10
+    StandardOutput=journal
+    StandardError=journal
 
     [Install]
     WantedBy=multi-user.target
