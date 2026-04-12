@@ -4,6 +4,7 @@ param aiServicesId string
 param hubId string
 param keyVaultId string
 param openaiPrivateDnsZoneId string
+param aiServicesDnsZoneId string
 param kvPrivateDnsZoneId string
 
 // Private Endpoint for AI Services (account sub-resource)
@@ -32,6 +33,10 @@ resource aiServicesDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZo
       {
         name: 'privatelink-openai-azure-com'
         properties: { privateDnsZoneId: openaiPrivateDnsZoneId }
+      }
+      {
+        name: 'privatelink-services-ai-azure-com'
+        properties: { privateDnsZoneId: aiServicesDnsZoneId }
       }
     ]
   }

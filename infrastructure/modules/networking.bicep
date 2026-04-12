@@ -67,9 +67,15 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-09-01' = {
   }
 }
 
-// Private DNS Zone for Azure OpenAI
+// Private DNS Zone for Azure OpenAI (cognitiveservices PE sub-resource)
 resource openaiDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: 'privatelink.openai.azure.com'
+  location: 'global'
+}
+
+// Private DNS Zone for AI Services (services.ai.azure.com endpoint)
+resource aiServicesDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.services.ai.azure.com'
   location: 'global'
 }
 
@@ -85,9 +91,18 @@ resource openaiDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLink
   name: 'link-openai-${vnetName}'
   location: 'global'
   properties: {
-    virtualNetwork: {
-      id: vnet.id
-    }
+    virtualNetwork: { id: vnet.id }
+    registrationEnabled: false
+  }
+}
+
+// VNet link for AI Services DNS zone
+resource aiServicesDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  parent: aiServicesDnsZone
+  name: 'link-aiservices-${vnetName}'
+  location: 'global'
+  properties: {
+    virtualNetwork: { id: vnet.id }
     registrationEnabled: false
   }
 }
@@ -98,9 +113,7 @@ resource kvDnsZoneLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@20
   name: 'link-kv-${vnetName}'
   location: 'global'
   properties: {
-    virtualNetwork: {
-      id: vnet.id
-    }
+    virtualNetwork: { id: vnet.id }
     registrationEnabled: false
   }
 }
@@ -109,4 +122,5 @@ output vnetId string = vnet.id
 output vmSubnetId string = vnet.properties.subnets[0].id
 output peSubnetId string = vnet.properties.subnets[1].id
 output openaiPrivateDnsZoneId string = openaiDnsZone.id
+output aiServicesDnsZoneId string = aiServicesDnsZone.id
 output kvPrivateDnsZoneId string = kvDnsZone.id

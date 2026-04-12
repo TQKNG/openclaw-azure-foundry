@@ -128,6 +128,7 @@ module privateEndpoints 'modules/private-endpoints.bicep' = {
     hubId: aiFoundry.outputs.hubId
     keyVaultId: keyvault.outputs.keyVaultId
     openaiPrivateDnsZoneId: networking.outputs.openaiPrivateDnsZoneId
+    aiServicesDnsZoneId: networking.outputs.aiServicesDnsZoneId
     kvPrivateDnsZoneId: networking.outputs.kvPrivateDnsZoneId
   }
 }
