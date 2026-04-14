@@ -1,0 +1,20 @@
+{
+  "name": "openclaw-azure-cli",
+  "version": "0.1.0",
+  "description": "CLI to deploy OpenClaw Azure Foundry infrastructure without forking the repo",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "openclaw-azure": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --loader ts-node/esm src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.2"
+  }
+}

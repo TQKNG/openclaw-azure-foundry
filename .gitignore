@@ -19,5 +19,8 @@ Thumbs.db
 # Node
 node_modules/
 
+# CLI local state
+.openclaw-azure/
+
 # Bicep compiled
 *.json.bak
