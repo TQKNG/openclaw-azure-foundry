@@ -209,10 +209,12 @@ jobs:
           ensure_fc() {
             local name="$1"
             local subject="$2"
-            local exists
-            exists=$(az ad app federated-credential list --id "$appId" --query "[?name=='$name'] | [0].name" -o tsv)
-            if [ "$exists" = "$name" ]; then
-              echo "Federated credential exists: $name"
+            # Check by name OR by subject (a previous run may have created it under a different name)
+            local existingByName existingBySubject
+            existingByName=$(az ad app federated-credential list --id "$appId" --query "[?name=='$name'] | [0].name" -o tsv 2>/dev/null || true)
+            existingBySubject=$(az ad app federated-credential list --id "$appId" --query "[?subject=='$subject'] | [0].name" -o tsv 2>/dev/null || true)
+            if [ -n "$existingByName" ] || [ -n "$existingBySubject" ]; then
+              echo "Federated credential already exists for subject '$subject' (name: ${existingByName:-$existingBySubject})"
             else
               az ad app federated-credential create --id "$appId" --parameters "{
                 \"name\": \"$name\",
