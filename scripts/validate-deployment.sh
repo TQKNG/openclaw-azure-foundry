@@ -20,7 +20,7 @@ az vm run-command invoke -g "$RG" -n "$VM" --command-id RunShellScript \
 
 echo "=== Checking OpenClaw status ==="
 az vm run-command invoke -g "$RG" -n "$VM" --command-id RunShellScript \
-  --scripts "sudo -u openclaw openclaw status"
+  --scripts "sudo -u openclaw /home/openclaw/.npm-global/bin/openclaw status"
 
 echo "=== Checking Private Endpoint DNS resolution ==="
 az vm run-command invoke -g "$RG" -n "$VM" --command-id RunShellScript \

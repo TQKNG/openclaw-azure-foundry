@@ -65,7 +65,7 @@ export async function runValidation(config: CliConfig): Promise<void> {
   await runCommand("az", [
     "vm", "run-command", "invoke", "-g", rg, "-n", vm,
     "--command-id", "RunShellScript",
-    "--scripts", "sudo -u openclaw openclaw status",
+    "--scripts", "sudo -u openclaw /home/openclaw/.npm-global/bin/openclaw status",
   ]);
 
   console.log("\n=== Checking Private Endpoint DNS resolution ===");

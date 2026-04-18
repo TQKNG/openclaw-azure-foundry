@@ -73,7 +73,7 @@ async function handleDeploy(projectRoot: string): Promise<void> {
     console.log("\n🎉 Pairing approved! Send a message to your bot — you should get a GPT-4o response.");
   } else {
     console.log("\nYou can approve pairing later by running: openclaw-azure deploy");
-    console.log("Or manually: az vm run-command invoke -g <RG> -n <VM> --command-id RunShellScript --scripts \"sudo -u openclaw openclaw pairing approve telegram <CODE>\"");
+    console.log("Or manually: az vm run-command invoke -g <RG> -n <VM> --command-id RunShellScript --scripts \"sudo -u openclaw /home/openclaw/.npm-global/bin/openclaw pairing approve telegram <CODE>\"");
   }
 }
 
