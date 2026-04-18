@@ -12,6 +12,13 @@ export async function ask(question: string, defaultValue?: string): Promise<stri
   return answer;
 }
 
+export async function askYesNo(question: string, defaultValue: boolean = true): Promise<boolean> {
+  const hint = defaultValue ? "Y/n" : "y/N";
+  const answer = await ask(`${question} (${hint})`, undefined);
+  if (!answer) return defaultValue;
+  return answer.toLowerCase().startsWith("y");
+}
+
 export async function askNumber(question: string, defaultValue: number): Promise<number> {
   while (true) {
     const value = await ask(question, String(defaultValue));

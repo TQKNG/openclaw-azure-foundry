@@ -38,6 +38,32 @@ export function runCommand(command: string, args: string[]): Promise<number> {
   });
 }
 
+export async function generateSshKeypair(projectRoot: string): Promise<string> {
+  const keyDir = path.join(projectRoot, ".openclaw-azure", "ssh");
+  await fs.mkdir(keyDir, { recursive: true });
+  const keyPath = path.join(keyDir, "id_ed25519");
+
+  try {
+    await fs.access(keyPath);
+    console.log(`SSH keypair already exists at ${keyPath}, reusing it.`);
+    return `${keyPath}.pub`;
+  } catch {
+    // Key doesn't exist yet — generate it
+  }
+
+  const code = await runCommand("ssh-keygen", [
+    "-t", "ed25519",
+    "-f", keyPath,
+    "-N", "",
+    "-C", "openclaw-azure-cli",
+  ]);
+  if (code !== 0) {
+    throw new Error("Failed to generate SSH keypair.");
+  }
+  console.log(`SSH keypair generated at ${keyPath}`);
+  return `${keyPath}.pub`;
+}
+
 export async function runOrThrow(command: string, args: string[], message: string): Promise<void> {
   const code = await runCommand(command, args);
   if (code !== 0) {

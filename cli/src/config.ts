@@ -2,8 +2,8 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import type { CliConfig } from "./types.js";
-import { ask, askNumber } from "./prompt.js";
-import { expandTilde } from "./utils.js";
+import { ask, askNumber, askYesNo } from "./prompt.js";
+import { expandTilde, generateSshKeypair } from "./utils.js";
 import { validateConfig } from "./validate.js";
 
 export function stateDir(projectRoot: string): string {
@@ -30,8 +30,16 @@ export async function loadConfig(projectRoot: string): Promise<CliConfig | null>
   }
 }
 
-export async function collectConfig(): Promise<CliConfig> {
+export async function collectConfig(projectRoot: string): Promise<CliConfig> {
   const defaultSshKey = path.join(os.homedir(), ".ssh", "id_ed25519.pub");
+
+  const generateSsh = await askYesNo("Generate a new SSH keypair for this deployment?", true);
+  let sshPublicKeyPath: string;
+  if (generateSsh) {
+    sshPublicKeyPath = await generateSshKeypair(projectRoot);
+  } else {
+    sshPublicKeyPath = expandTilde(await ask("SSH public key path", defaultSshKey));
+  }
 
   const config: CliConfig = {
     location: await ask("Azure location", "eastus2"),
@@ -41,7 +49,7 @@ export async function collectConfig(): Promise<CliConfig> {
     vmSize: await ask("VM size", "Standard_D2s_v3"),
     osDiskSizeGb: await askNumber("OS disk size GB", 64),
     adminUsername: await ask("VM admin username", "openclaw"),
-    sshPublicKeyPath: expandTilde(await ask("SSH public key path", defaultSshKey)),
+    sshPublicKeyPath,
     aiServicesName: await ask("AI Services account name", "oc-ai-services-demo"),
     hubName: await ask("Foundry Hub name", "oc-foundry-hub-demo"),
     projectName: await ask("Foundry Project name", "oc-foundry-project-demo"),

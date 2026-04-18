@@ -21,7 +21,7 @@ Commands:
 }
 
 async function handleInit(projectRoot: string): Promise<void> {
-  const config = await collectConfig();
+  const config = await collectConfig(projectRoot);
   await saveConfig(projectRoot, config);
   const paramsPath = await writeGeneratedParams(projectRoot, config);
   console.log(`Saved config: ${configPath(projectRoot)}`);
