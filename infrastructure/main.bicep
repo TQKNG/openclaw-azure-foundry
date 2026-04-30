@@ -35,7 +35,7 @@ param hubName string = 'oc-foundry-hub-demo'
 param projectName string = 'oc-foundry-project-demo'
 
 @description('Storage account name for Foundry Hub (3-24 chars, lowercase alphanumeric)')
-param storageAccountName string = 'stocfoundrydemo01'
+param storageAccountName string = 'stocfoundrydemo2026'
 
 @description('Model name to deploy')
 param modelName string = 'gpt-4o'
