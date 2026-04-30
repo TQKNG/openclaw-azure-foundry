@@ -14,7 +14,7 @@ param storageAccountName = 'stocfoundrydemontug2026'
 param modelName = 'gpt-4o'
 param modelVersion = '2024-11-20'
 param modelCapacity = 20
-param keyVaultName = 'kv-oc-demo-ntug'
+param keyVaultName = 'kv-oc-demo-ntug-2026'
 // sshPublicKey and telegramBotToken passed at deploy time
 param sshPublicKey = 'ssh-rsa PLACEHOLDER'
 param telegramBotToken = 'PLACEHOLDER'
