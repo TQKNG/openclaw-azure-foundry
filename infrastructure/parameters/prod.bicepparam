@@ -10,11 +10,11 @@ param adminUsername = 'openclaw'
 param aiServicesName = 'oc-ai-services-demontug'
 param hubName = 'oc-foundry-hub-demontug'
 param projectName = 'oc-foundry-proj-demontug'
-param storageAccountName = 'stocfoundrydemontug2026'
+param storageAccountName = 'stocfoundrydemontug2027'
 param modelName = 'gpt-4o'
 param modelVersion = '2024-11-20'
 param modelCapacity = 20
-param keyVaultName = 'kv-oc-demo-ntug-2026'
+param keyVaultName = 'kv-oc-demo-ntug-2027'
 // sshPublicKey and telegramBotToken passed at deploy time
 param sshPublicKey = 'ssh-rsa PLACEHOLDER'
 param telegramBotToken = 'PLACEHOLDER'
